@@ -25,9 +25,22 @@ async function run() {
     const userCollection = client.db("Health-Chamber").collection("users");
 
     // post a new user
-    app.post("/users", async (req, res) => {
+    app.put("/users", async (req, res) => {
       const user = req.body;
-      const result = await userCollection.insertOne(user);
+      const query = { email: user?.email };
+      const isExist = await userCollection.findOne(query);
+      if (isExist) {
+        res.send(isExist);
+      }
+      // save user for the first time
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          ...user,
+          timestamp: Date.now(),
+        },
+      };
+      const result = await userCollection.updateOne(query, updateDoc, options);
       res.send(result);
     });
 
