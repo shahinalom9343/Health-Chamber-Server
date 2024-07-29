@@ -2,6 +2,7 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
+const nodemailer = require("nodemailer");
 require("dotenv").config();
 const { MongoClient, ServerApiVersion } = require("mongodb");
 const port = process.env.PORT || 5000;
@@ -11,6 +12,42 @@ const saltRounds = 10;
 // middleware
 app.use(cors());
 app.use(express.json());
+
+// send email
+const sendEmail = (emailAddress, emailData) => {
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false,
+    auth: {
+      user: process.env.TRANSPORTER_EMAIL,
+      pass: process.env.TRANSPORTER_PASS,
+    },
+  });
+  // verify connection
+  transporter.verify(function (error, success) {
+    if (error) {
+      console.log(error);
+    } else {
+      console.log("Server is ready to take our messages");
+    }
+  });
+  const mailBody = {
+    from: `"HealthChamber" <${process.env.TRANSPORTER_EMAIL}>`,
+    to: emailAddress,
+    subject: emailData.subject,
+    html: emailData.message,
+  };
+
+  transporter.sendMail(mailBody, (error, info) => {
+    if (error) {
+      console.log(error);
+    } else {
+      console.log("Email Sent: " + info.response);
+    }
+  });
+};
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.43teffq.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -71,32 +108,37 @@ async function run() {
       const isExist = await userCollection.findOne(query);
       if (isExist) {
         res.send(isExist);
-      }
-
-      bcrypt.genSalt(saltRounds, function (err, salt) {
-        bcrypt.hash(user?.password, salt, async function (err, hash) {
-          const userInfo = {
-            name: user?.name,
-            email: user?.email,
-            password: hash,
-            role: "user",
-          };
-          // save user for the first time
-          const options = { upsert: true };
-          const updateDoc = {
-            $set: {
-              ...userInfo,
-              timestamp: Date.now(),
-            },
-          };
-          const result = await userCollection.updateOne(
-            query,
-            updateDoc,
-            options
-          );
-          res.send(result);
+      } else {
+        bcrypt.genSalt(saltRounds, function (err, salt) {
+          bcrypt.hash(user?.password, salt, async function (err, hash) {
+            const userInfo = {
+              name: user?.name,
+              email: user?.email,
+              password: hash,
+              role: "user",
+            };
+            // save user for the first time
+            const options = { upsert: true };
+            const updateDoc = {
+              $set: {
+                ...userInfo,
+                timestamp: Date.now(),
+              },
+            };
+            const result = await userCollection.updateOne(
+              query,
+              updateDoc,
+              options
+            );
+            // welcome message to email
+            sendEmail(user?.email, {
+              subject: "Welcome to PicoTask Rush website!",
+              message: `Hope you will find a lot of resources which you find`,
+            });
+            res.send(result);
+          });
         });
-      });
+      }
     });
 
     await client.db("admin").command({ ping: 1 });
