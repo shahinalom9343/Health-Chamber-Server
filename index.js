@@ -72,6 +72,7 @@ async function run() {
       });
       res.send({ token });
     });
+
     // middlewares/verifyToken
     const verifyToken = (req, res, next) => {
       console.log("inside verifytoken", req.headers.authorization);
@@ -88,9 +89,21 @@ async function run() {
       });
     };
 
+    // check if user is admin or not
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      const isAdmin = user?.role === "admin";
+      if (!isAdmin) {
+        return res.status(403).send({ message: "Forbidden Admin Access" });
+      }
+      next();
+    };
+
     // user related APIs
     // get all users
-    app.get("/users", verifyToken, async (req, res) => {
+    app.get("/users", verifyToken, verifyAdmin, async (req, res) => {
       console.log(req.headers);
       const result = await userCollection.find().toArray();
       res.send(result);
