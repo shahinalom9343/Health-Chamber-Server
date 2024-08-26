@@ -63,6 +63,7 @@ async function run() {
   try {
     // await client.connect();
     const userCollection = client.db("Health-Chamber").collection("users");
+    const doctorCollection = client.db("Health-Chamber").collection("doctors");
 
     // jwt related works
     app.post("/jwt", async (req, res) => {
@@ -152,6 +153,12 @@ async function run() {
           });
         });
       }
+    });
+
+    // get all doctors
+    app.get("/doctors", async (req, res) => {
+      const result = await doctorCollection.find().toArray();
+      res.send(result);
     });
 
     await client.db("admin").command({ ping: 1 });
