@@ -64,6 +64,9 @@ async function run() {
     // await client.connect();
     const userCollection = client.db("Health-Chamber").collection("users");
     const doctorCollection = client.db("Health-Chamber").collection("doctors");
+    const patientsCollection = client
+      .db("Health-Chamber")
+      .collection("patients");
 
     // jwt related works
     app.post("/jwt", async (req, res) => {
@@ -158,6 +161,20 @@ async function run() {
     // get all doctors
     app.get("/doctors", async (req, res) => {
       const result = await doctorCollection.find().toArray();
+      res.send(result);
+    });
+
+    // post new patient
+    app.put("/patients", async (req, res) => {
+      const patient = req.body;
+      const result = await patientsCollection.insertOne(patient);
+      res.send(result);
+    });
+
+    // get all patients
+    app.get("/patients", verifyToken, verifyAdmin, async (req, res) => {
+      console.log(req.headers);
+      const result = await patientsCollection.find().toArray();
       res.send(result);
     });
 
