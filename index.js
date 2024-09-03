@@ -161,10 +161,14 @@ async function run() {
     // get all doctors
     app.get("/doctors", async (req, res) => {
       // console.log("pagination query", req.query);
+      const search = req.query.search;
       const pages = parseInt(req.query.pages);
       const size = parseInt(req.query.size);
+      const query = {
+        name: { $regex: `${search}`, $options: "i" },
+      };
       const result = await doctorCollection
-        .find()
+        .find(query)
         .skip(pages * size)
         .limit(size)
         .toArray();
