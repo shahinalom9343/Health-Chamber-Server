@@ -160,7 +160,14 @@ async function run() {
 
     // get all doctors
     app.get("/doctors", async (req, res) => {
-      const result = await doctorCollection.find().toArray();
+      // console.log("pagination query", req.query);
+      const pages = parseInt(req.query.pages);
+      const size = parseInt(req.query.size);
+      const result = await doctorCollection
+        .find()
+        .skip(pages * size)
+        .limit(size)
+        .toArray();
       res.send(result);
     });
 
